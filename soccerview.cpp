@@ -83,54 +83,21 @@ GLSoccerView::GLSoccerView(QWidget* parent) :
     tLastRedraw = 0;
 }
 
-void GLSoccerView::updatePacket(const DataWrapper &_packet) {
-
+void GLSoccerView::updateMove(MoveMSG _msg)
+{
     graphicsMutex.lock();
-    ball.x = ball.y = 5000;
-    robots.clear();
-
-    if (_packet.has_worldmodel()) {
-        updateWorldModel(_packet.worldmodel());
-    }
-
-    if (_packet.has_draws()) {
-        debugs = _packet.draws();
-
-    }
 
     graphicsMutex.unlock();
     postRedraw();
 }
 
-void GLSoccerView::updateWorldModel(const WorldModel &_wm) {
+void GLSoccerView::updateStatus(StatusMSG _status)
+{
+    graphicsMutex.lock();
 
-    robots.clear();
-
-    for(int i=0; i < _wm.opp_size(); i++){
-        Robot robot;
-        robot.loc.set(_wm.opp(i).pos().x(), _wm.opp(i).pos().y());
-        robot.id = i;
-        robot.hasAngle = true;
-        if(robot.hasAngle) robot.angle = _wm.opp(i).direction();
-        robot.team = (_wm.blue()) ? teamYellow : teamBlue;
-        robot.conf = 0.5;
-        robots.append(robot);
-    }
-
-    for(int i=0; i < _wm.our_size(); i++){
-        Robot robot;
-        robot.loc.set(_wm.our(i).pos().x(), _wm.our(i).pos().y());
-        robot.id = i;
-        robot.hasAngle = true;
-        if(robot.hasAngle) robot.angle = _wm.our(i).direction();
-        robot.team = (_wm.blue()) ? teamBlue : teamYellow;
-        robot.conf = 0.5;
-        robots.append(robot);
-    }
-
-    ball.x = _wm.ball().pos().x();
-    ball.y = _wm.ball().pos().y();
+    graphicsMutex.unlock();
     postRedraw();
+
 }
 
 void GLSoccerView::redraw()

@@ -5,10 +5,11 @@
 #include <QApplication>
 #include "soccerview.h"
 #include "timer.h"
-#include <QtNetwork>
-#include <QHostAddress>
-#include <messages_parsian_simurosot_data_wrapper.pb.h>
-
+#include "msg.h"
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
 GLSoccerView *view;
 
 bool runApp = true;
@@ -18,23 +19,53 @@ class MyThread : public QThread
 protected:
     void run()
     {
-        QUdpSocket* socket = new QUdpSocket();
-        socket->bind(QHostAddress("172.21.224.130"), 10030, QUdpSocket::ShareAddress);
+        QFile serverLog("../../../../graphic.log"); serverLog.open(QIODevice::ReadOnly);
+        QJsonDocument sl = QJsonDocument::fromJson(serverLog.readAll());
+
+        if (sl.isEmpty() || sl.isNull()) qDebug() << "HEY2";
         while(runApp) {
-            while (socket->hasPendingDatagrams()) {
-                QByteArray Buffer;
-                Buffer.resize(socket->pendingDatagramSize());
-                QHostAddress sender;
-                quint16 senderPort;
-                socket->readDatagram(Buffer.data(),Buffer.size(),&sender,&senderPort);
-                DataWrapper packet;
-                if (packet.ParsePartialFromArray(Buffer.data(), Buffer.size())) {
-                    view->updatePacket(packet);
+            for (int i = 0; i < sl.array().size() ; i++) {
+                QJsonObject obj = sl.array().at(i).toObject();
+                QJsonObject arg = obj["args"].toArray().at(0).toObject();
+                if (obj["name"].toString() == "init") {
+
+                } else if (obj["name"].toString() == "move") {
+                    MoveMSG msg;
+                    msg.movement = arg["movements"].toString();
+                    msg.currentAP[0] = arg["currentAP"].toArray().at(0).toInt();
+                    msg.currentAP[1] = arg["currentAP"].toArray().at(1).toInt();
+
+                    view->updateMove(msg);
+
+                } else if (obj["name"].toString() == "action") {
+                    ActionMSG msg;
+
+                } else if (obj["name"].toString() == "status") {
+                    StatusMSG msg;
+                    msg.score[0] = arg["scores"].toArray().at(0).toInt();
+                    msg.score[1] = arg["scores"].toArray().at(1).toInt();
+                    for (int j = 0; j < 8; j++) {
+                        QJsonObject o = arg["heroes"].toArray().at(j).toObject();
+                        msg.heroes[j].id = o["id"].toInt();
+                        msg.heroes[j].currentHP = o["currentHP"].toInt();
+                        msg.heroes[j].remRespawnTime = o["remRespawnTime"].toInt();
+                        for (int k = 0; k < 4; k++) {
+                            QJsonObject oo = o["remainingCooldowns"].toObject();
+                            msg.heroes[j].remCool[oo["ability"].toString()] = oo["num"].toInt();
+                        }
+                    }
+                    view->updateStatus(msg);
+
+                } else if (obj["name"].toString() == "pick") {
+                } else if (obj["name"].toString() == "end") {
                 } else {
-                    qDebug() << Buffer.data() << "FAILED TO PARSE";
+                    qDebug() << obj["name"] << "IS UNKNWON";
+                    continue;
                 }
+
             }
         }
+        serverLog.close();
     }
 
 public:

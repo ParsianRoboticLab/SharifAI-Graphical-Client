@@ -35,10 +35,8 @@ HEADERS  += mainwindow.h \
     quaternion.h \
     range.h \
     util.h \
+    msg.h
 
 
 MOC_DIR = objs
 OBJECTS_DIR = objs
-
-RESOURCES += \
-    resource.qrc

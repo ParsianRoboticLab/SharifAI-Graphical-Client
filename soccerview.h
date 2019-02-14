@@ -35,8 +35,7 @@
 #include "geometry.h"
 #include "util.h"
 #include "gltext.h"
-#include <messages_parsian_simurosot_data_wrapper.pb.h>
-
+#include "msg.h"
 #ifndef SOCCERVIEW_H
 #define SOCCERVIEW_H
 
@@ -117,7 +116,7 @@ private:
     double tLastRedraw;
 
     FieldDimensions fieldDim;
-    Draws debugs;
+    StatusMSG status;
 private:
     void drawFieldLines(FieldDimensions &dimensions);
     void drawRobots();
@@ -151,8 +150,8 @@ protected:
 
 public:
     GLSoccerView(QWidget *parent = 0);
-    void updatePacket(const DataWrapper& _packet);
-    void updateWorldModel(const WorldModel& _wm);
+    void updateMove(MoveMSG _msg);
+    void updateStatus(StatusMSG _status);
 public slots:
     void resetView();
 private slots:
