@@ -19,9 +19,7 @@ SOURCES += main.cpp\
     soccerview.cpp \
     field_default_constants.cpp \
     field.cpp \
-    msg/cpp/messages_parsian_simurosot_data_wrapper.pb.cc \
-    msg/cpp/messages_parsian_simurosot_debugs.pb.cc \
-    msg/cpp/messages_parsian_simurosot_worldmodel.pb.cc
+
 
 HEADERS  += mainwindow.h \
     gltext.h \
@@ -37,16 +35,10 @@ HEADERS  += mainwindow.h \
     quaternion.h \
     range.h \
     util.h \
-    msg/cpp/messages_parsian_simurosot_data_wrapper.pb.h \
-    msg/cpp/messages_parsian_simurosot_debugs.pb.h \
-    msg/cpp/messages_parsian_simurosot_worldmodel.pb.h
+
 
 MOC_DIR = objs
 OBJECTS_DIR = objs
-
-INCLUDEPATH+=msg/cpp
-INCLUDEPATH+=/usr/local/Cellar/protobuf/3.6.1.3_1/include
-LIBS+=-L/usr/local/Cellar/protobuf/3.6.1.3_1/lib/ -lprotobuf -lprotobuf-lite
 
 RESOURCES += \
     resource.qrc
