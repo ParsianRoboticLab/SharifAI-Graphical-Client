@@ -28,7 +28,32 @@ protected:
                 QJsonObject obj = sl.array().at(i).toObject();
                 QJsonObject arg = obj["args"].toArray().at(0).toObject();
                 if (obj["name"].toString() == "init") {
+                    InitMSG msg;
+                    msg.map.col = arg["map"].toObject()["columnNum"].toInt();
+                    msg.map.row = arg["map"].toObject()["rowNum"].toInt();
+                    msg.map.cells = new Cell*[msg.map.col];
+                    for (int i = 0; i < msg.map.col; i++) msg.map.cells[i] = new Cell[msg.map.row];
+                    for (auto cell : arg["map"].toObject()["cells"].toArray().at(0).toArray()) {
+                        Cell& c = msg.map.cells
+                                [cell.toObject()["column"].toInt()]
+                                [cell.toObject()["row"].toInt()];
+                        c.col = cell.toObject()["column"].toInt();
+                        c.row = cell.toObject()["row"].toInt();
+                        c.type = NONE;
+                        if (cell.toObject()["isWall"].toBool()) {
+                            c.type = WALL;
+                        } else if (cell.toObject()["isInFirstRespawnZone"].toBool()) {
+                            c.type = RES1;
+                        } else if (cell.toObject()["isInSecondRespawnZone"].toBool()) {
+                            c.type = RES2;
+                        } else if (cell.toObject()["isInObjectiveZone"].toBool()) {
+                            c.type = ZONE;
+                        } else {
+                            c.type = NONE;
+                        }
 
+                    }
+                    view->initStuff(msg);
                 } else if (obj["name"].toString() == "move") {
                     MoveMSG msg;
                     msg.movement = arg["movements"].toString();

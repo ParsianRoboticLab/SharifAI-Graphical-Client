@@ -90,8 +90,8 @@ private:
 
     QVector <Robot> robots;
 
-    QList   <Vec2D> robotsHistory;
-    QList   <Vec2D> ballHistory;
+//    QList   <Vec2D> robotsHistory;
+//    QList   <Vec2D> ballHistory;
 
     QMutex graphicsMutex;
     GLText glText;
@@ -117,11 +117,13 @@ private:
 
     FieldDimensions fieldDim;
     StatusMSG status;
+    InitMSG stuff;
 private:
     void drawFieldLines(FieldDimensions &dimensions);
+    void drawMap(InitMSG &map);
     void drawRobots();
-    void drawHistory();
-    void drawDebugs();
+//    void drawHistory();
+//    void drawDebugs();
     void drawTriangle(vector2d loc1, vector2d loc2, vector2d loc3, double z);
     void drawQuad(vector2d loc1, vector2d loc2, double z=0.0, bool fill = true);
     void drawQuad(double x1, double y1, double x2, double y2, double z=0.0, bool fill = true){drawQuad(vector2d(x1,y1),vector2d(x2,y2),z, fill);}
@@ -152,6 +154,7 @@ public:
     GLSoccerView(QWidget *parent = 0);
     void updateMove(MoveMSG _msg);
     void updateStatus(StatusMSG _status);
+    void initStuff(const InitMSG& _msg);
 public slots:
     void resetView();
 private slots:

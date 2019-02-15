@@ -100,6 +100,10 @@ void GLSoccerView::updateStatus(StatusMSG _status)
 
 }
 
+void GLSoccerView::initStuff(const InitMSG &_msg) {
+    stuff = _msg;
+}
+
 void GLSoccerView::redraw()
 {
     if(GetTimeSec()-tLastRedraw<MinRedrawInterval)
@@ -307,11 +311,12 @@ void GLSoccerView::paintEvent(QPaintEvent* event)
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    drawFieldLines(fieldDim);
+    drawMap(stuff);
+//    drawFieldLines(fieldDim);
     drawRobots();
-    drawHistory();
-    drawBall(ball);
-    drawDebugs();
+//    drawHistory();
+//    drawBall(ball);
+//    drawDebugs();
 //        vectorTextTest();
     glPopMatrix();
     swapBuffers();
@@ -559,6 +564,66 @@ void GLSoccerView::drawFieldLines(FieldDimensions& dimensions)
 
 }
 
+void GLSoccerView::drawMap(InitMSG &map) {
+    glColor4f(FIELD_LINES_COLOR);
+    qDebug() << "MAP  " << map.map.col << map.map.row;
+    for (size_t i = 0; i <= map.map.col; ++i) {
+        FieldLine line(QString("col_%1").arg(i),i,  map.map.row,
+                       i, 0, 0.2);
+        const double half_thickness = line.thickness / 2;
+        const vector2d p1(line.p1_x * 10, line.p1_y * 10);
+        const vector2d p2(line.p2_x * 10, line.p2_y * 10);
+        const vector2d perp = (p2 - p1).norm().perp();
+        const vector2d corner1 = p1 - half_thickness * perp;
+        const vector2d corner2 = p2 + half_thickness * perp;
+        drawQuad(corner1, corner2, FieldZ);
+    }
+
+    for(size_t i = 0; i <= map.map.row; i++) {
+        FieldLine line(QString("row_%1").arg(i), 0,  i,
+                       map.map.col, i, 0.2);
+        const double half_thickness = line.thickness / 2;
+        const vector2d p1(line.p1_x * 10, line.p1_y * 10);
+        const vector2d p2(line.p2_x * 10, line.p2_y * 10);
+        const vector2d perp = (p2 - p1).norm().perp();
+        const vector2d corner1 = p1 - half_thickness * perp;
+        const vector2d corner2 = p2 + half_thickness * perp;
+        drawQuad(corner1, corner2, FieldZ);
+    }
+
+    for(int i = 0; i < map.map.row; i++) {
+        for (int j = 0; j < map.map.col - 2; j++) {
+            switch (map.map.cells[i][j].type) {
+            case NONE:
+                glColor4d(0,0,0,0);
+                break;
+            case WALL:
+                glColor4d(1.0,1.0,1.0,0.7);
+                break;
+            case RES1:
+                glColor4d(1.0,0,0,0.8);
+                break;
+            case RES2:
+                glColor4d(0,0,1.0, 0.8);
+                break;
+            case ZONE:
+                glColor4d(0,1.0,0.0,1.0);
+                break;
+            }
+            FieldLine line(QString("cell_%1_%2").arg(i).arg(j), j + 1,  i + 1,
+                           j + 2, i, 20);
+            const double half_thickness = line.thickness / 2;
+            const vector2d p1(line.p1_x * 10, line.p1_y * 10);
+            const vector2d p2(line.p2_x * 10, line.p2_y * 10);
+            const vector2d perp = (p2 - p1).norm().perp();
+            const vector2d corner1 = p1 - half_thickness * perp;
+            const vector2d corner2 = p2 + half_thickness * perp;
+            drawQuad(corner1, corner2, FieldZ);
+        }
+    }
+
+}
+
 void GLSoccerView::drawBall(vector2d loc)
 {
     glColor3d(1.0,0.5059,0.0);
@@ -583,91 +648,91 @@ void GLSoccerView::drawRobots() {
     }
 }
 
-void GLSoccerView::drawHistory() {
-    for (int i = 0; i < robotsHistory.size(); i++) {
-        glColor4f(robotsHistory.at(i).color().r(),robotsHistory.at(i).color().g(),robotsHistory.at(i).color().b(),robotsHistory.at(i).color().a());
+//void GLSoccerView::drawHistory() {
+//    for (int i = 0; i < robotsHistory.size(); i++) {
+//        glColor4f(robotsHistory.at(i).color().r(),robotsHistory.at(i).color().g(),robotsHistory.at(i).color().b(),robotsHistory.at(i).color().a());
 
-        drawArc(robotsHistory.at(i).x(), robotsHistory.at(i).y(), 0, 1, 0, 2*M_PI, DebugZ, -1);
-    }
+//        drawArc(robotsHistory.at(i).x(), robotsHistory.at(i).y(), 0, 1, 0, 2*M_PI, DebugZ, -1);
+//    }
 
-    if (ballHistory.size())
-        glColor4f(ballHistory.at(0).color().r(),ballHistory.at(0).color().g(),ballHistory.at(0).color().b(),ballHistory.at(0).color().a());
-    glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < ballHistory.size(); i++) {
-        glVertex3d(ballHistory.at(i).x(), ballHistory.at(i).y(), DebugZ);
+//    if (ballHistory.size())
+//        glColor4f(ballHistory.at(0).color().r(),ballHistory.at(0).color().g(),ballHistory.at(0).color().b(),ballHistory.at(0).color().a());
+//    glBegin(GL_LINE_STRIP);
+//    for (int i = 0; i < ballHistory.size(); i++) {
+//        glVertex3d(ballHistory.at(i).x(), ballHistory.at(i).y(), DebugZ);
 
-    }
-    glEnd();
-}
+//    }
+//    glEnd();
+//}
 
-void GLSoccerView::drawDebugs() {
-    for (int i = 0; i < debugs.vectors_size(); i++) {
-        const Vec2D& v = debugs.vectors(i);
-        glColor4f(v.color().r(),
-                  v.color().g(),
-                  v.color().b(),
-                  v.color().a());
-        drawPoint(v.x(), v.y(), DebugZ);
-    }
+//void GLSoccerView::drawDebugs() {
+//    for (int i = 0; i < debugs.vectors_size(); i++) {
+//        const Vec2D& v = debugs.vectors(i);
+//        glColor4f(v.color().r(),
+//                  v.color().g(),
+//                  v.color().b(),
+//                  v.color().a());
+//        drawPoint(v.x(), v.y(), DebugZ);
+//    }
 
-    for (int i = 0; i < debugs.circles_size(); i++) {
-        const Cir2D& c = debugs.circles(i);
-        glColor4f(c.color().r(),
-                  c.color().g(),
-                  c.color().b(),
-                  c.color().a());
-        drawArc(c.center().x(), c.center().y(),
-                (c.radius() < 0.11) ? 0 : c.radius() - 0.1, c.radius(),
-                c.startangle(), c.endangle(), DebugZ, -1);
-    }
+//    for (int i = 0; i < debugs.circles_size(); i++) {
+//        const Cir2D& c = debugs.circles(i);
+//        glColor4f(c.color().r(),
+//                  c.color().g(),
+//                  c.color().b(),
+//                  c.color().a());
+//        drawArc(c.center().x(), c.center().y(),
+//                (c.radius() < 0.11) ? 0 : c.radius() - 0.1, c.radius(),
+//                c.startangle(), c.endangle(), DebugZ, -1);
+//    }
 
-    for (int i = 0; i < debugs.rects_size(); i++) {
+//    for (int i = 0; i < debugs.rects_size(); i++) {
 
-        const Rec2D& r = debugs.rects(i);
-        glColor4f(r.color().r(),
-                  r.color().g(),
-                  r.color().b(),
-                  r.color().a());
-        drawQuad(r.topleft().x(), r.topleft().y(),
-                 r.botright().x(), r.botright().y(), DebugZ, r.fill());
-    }
+//        const Rec2D& r = debugs.rects(i);
+//        glColor4f(r.color().r(),
+//                  r.color().g(),
+//                  r.color().b(),
+//                  r.color().a());
+//        drawQuad(r.topleft().x(), r.topleft().y(),
+//                 r.botright().x(), r.botright().y(), DebugZ, r.fill());
+//    }
 
-    for (int i = 0; i < debugs.segments_size(); i++) {
-        const Seg2D& s = debugs.segments(i);
-        glColor4f(s.color().r(),
-                  s.color().g(),
-                  s.color().b(),
-                  s.color().a());
-        drawLine(s.origin().x(), s.origin().y(),
-                 s.terminal().x(), s.terminal().y(), DebugZ);
+//    for (int i = 0; i < debugs.segments_size(); i++) {
+//        const Seg2D& s = debugs.segments(i);
+//        glColor4f(s.color().r(),
+//                  s.color().g(),
+//                  s.color().b(),
+//                  s.color().a());
+//        drawLine(s.origin().x(), s.origin().y(),
+//                 s.terminal().x(), s.terminal().y(), DebugZ);
 
-    }
+//    }
 
-    for (int i = 0; i < debugs.texts_size(); i++) {
-        const Tex2D& t = debugs.texts(i);
-        QString q(t.data().c_str());
-        q.replace(' ', '_');
-        glColor4f(t.color().r(),
-                  t.color().g(),
-                  t.color().b(),
-                  t.color().a());
-        glText.drawString(t.pos().x(), t.pos().y(), 0, t.size(), q.toStdString().c_str(),GLText::CenterAligned,GLText::MiddleAligned);
+//    for (int i = 0; i < debugs.texts_size(); i++) {
+//        const Tex2D& t = debugs.texts(i);
+//        QString q(t.data().c_str());
+//        q.replace(' ', '_');
+//        glColor4f(t.color().r(),
+//                  t.color().g(),
+//                  t.color().b(),
+//                  t.color().a());
+//        glText.drawString(t.pos().x(), t.pos().y(), 0, t.size(), q.toStdString().c_str(),GLText::CenterAligned,GLText::MiddleAligned);
 
-    }
+//    }
 
-    for (int i = 0; i < debugs.polygons_size(); i++) {
-        const Pol2D& p = debugs.polygons(i);
-        glColor4f(p.color().r(),
-                  p.color().g(),
-                  p.color().b(),
-                  p.color().a());
-        if (p.fill()) glBegin(GL_TRIANGLE_FAN);
-        else glBegin(GL_LINE_LOOP);
-        for (int j = 0; j < p.vectors_size(); j++) {
-            const Vec2& v = p.vectors(j);
-            glVertex3d(v.x(), v.y(), DebugZ);
-        }
-        glEnd();
+//    for (int i = 0; i < debugs.polygons_size(); i++) {
+//        const Pol2D& p = debugs.polygons(i);
+//        glColor4f(p.color().r(),
+//                  p.color().g(),
+//                  p.color().b(),
+//                  p.color().a());
+//        if (p.fill()) glBegin(GL_TRIANGLE_FAN);
+//        else glBegin(GL_LINE_LOOP);
+//        for (int j = 0; j < p.vectors_size(); j++) {
+//            const Vec2& v = p.vectors(j);
+//            glVertex3d(v.x(), v.y(), DebugZ);
+//        }
+//        glEnd();
 
-    }
-}
+//    }
+//}

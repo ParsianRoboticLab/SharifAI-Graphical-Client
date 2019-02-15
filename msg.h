@@ -3,8 +3,26 @@
 
 #include <QMap>
 
-struct InitMSG {
+enum CellType {
+    NONE,
+    WALL,
+    ZONE,
+    RES1,
+    RES2
+};
 
+struct Cell {
+    int row, col;
+    CellType type;
+};
+
+struct Map {
+    Cell** cells;
+    int row,col;
+};
+
+struct InitMSG {
+    Map map;
 };
 
 struct MoveMSG {
@@ -30,5 +48,6 @@ struct StatusMSG {
     int respwanedHeroID[8];
     int score[2];
 };
+
 
 #endif // MSG_H
