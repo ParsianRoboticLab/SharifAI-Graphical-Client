@@ -81,20 +81,25 @@ GLSoccerView::GLSoccerView(QWidget* parent) :
     RobotIDFont.setPointSize(80);
     glText = GLText(RobotIDFont);
     tLastRedraw = 0;
+    stuff.map.col = -1; stuff.map.row = -1;
 }
 
 void GLSoccerView::updateMove(MoveMSG _msg)
 {
     graphicsMutex.lock();
-
+    for (int i = 0; i < 2; i ++) {
+        for (int j = 0; j < 4; j++) {
+            pick.heroes[i][j]  = _msg.heroes[i][j];
+        }
+    }
     graphicsMutex.unlock();
     postRedraw();
 }
 
-void GLSoccerView::updateStatus(StatusMSG _status)
+void GLSoccerView::updateStatus(const StatusMSG& _status)
 {
     graphicsMutex.lock();
-
+    status = _status;
     graphicsMutex.unlock();
     postRedraw();
 
@@ -102,6 +107,11 @@ void GLSoccerView::updateStatus(StatusMSG _status)
 
 void GLSoccerView::initStuff(const InitMSG &_msg) {
     stuff = _msg;
+}
+
+void GLSoccerView::initHero(const PickMSG &_msg)
+{
+    pick = _msg;
 }
 
 void GLSoccerView::redraw()
@@ -312,12 +322,13 @@ void GLSoccerView::paintEvent(QPaintEvent* event)
     glPushMatrix();
     glLoadIdentity();
     drawMap(stuff);
-//    drawFieldLines(fieldDim);
+    drawStatus();
+    //    drawFieldLines(fieldDim);
     drawRobots();
-//    drawHistory();
-//    drawBall(ball);
-//    drawDebugs();
-//        vectorTextTest();
+    //    drawHistory();
+    //    drawBall(ball);
+    //    drawDebugs();
+    //        vectorTextTest();
     glPopMatrix();
     swapBuffers();
     graphicsMutex.unlock();
@@ -381,14 +392,14 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
 {
     if(useDisplayLists){
         switch ( team ){
-        case teamBlue:{
+        case 0:{
             if(hasAngle)
                 glCallList(blueRobotShape);
             else
                 glCallList(blueCircleRobotShape);
             break;
         }
-        case teamYellow:{
+        case 1:{
             if(hasAngle)
                 glCallList(yellowRobotShape);
             else
@@ -407,11 +418,11 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
     }
 
     switch ( team ){
-    case teamBlue:{
+    case 0:{
         glColor3d(0.2549, 0.4941, 1.0);
         break;
     }
-    case teamYellow:{
+    case 1:{
         glColor3d(1.0, 0.9529, 0.2431);
         break;
     }
@@ -423,11 +434,11 @@ void GLSoccerView::drawRobot(int team, bool hasAngle, bool useDisplayLists)
     drawQuad(-RobotSide/2, RobotSide/2, RobotSide/2, -RobotSide/2, RobotZ);
 
     switch ( team ){
-    case teamBlue:{
+    case 0:{
         glColor3d(0.0706, 0.2314, 0.6275);
         break;
     }
-    case teamYellow:{
+    case 1:{
         glColor3d(0.8, 0.6157, 0.0);
         break;
     }
@@ -480,11 +491,11 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
     glLoadIdentity();
     glTranslated(loc.x,loc.y,0);
     switch ( team ){
-    case teamBlue:{
+    case 0:{
         glColor3d(0.2549, 0.4941, 1.0);
         break;
     }
-    case teamYellow:{
+    case 1:{
         glColor3d(1.0, 0.9529, 0.2431);
         break;
     }
@@ -493,7 +504,8 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
         break;
     }
     }
-    //    drawQuad(-9,13,-9+18*conf,16,RobotZ);
+    //    glColor3d(1,0,0);
+    drawQuad(-9,13,-9+18*conf,16,RobotZ);
     glColor3d(0.0,0.0,0.0);
     char buf[1024];
     if(robotID!=unknownRobotID)
@@ -502,11 +514,11 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
         snprintf(buf,1023,"?");
     glText.drawString(loc,0,5,buf,GLText::CenterAligned,GLText::MiddleAligned);
     switch ( team ){
-    case teamBlue:{
+    case 0:{
         glColor3d(0.0706, 0.2314, 0.6275);
         break;
     }
-    case teamYellow:{
+    case 1:{
         glColor3d(0.8, 0.6157, 0.0);
         break;
     }
@@ -515,10 +527,11 @@ void GLSoccerView::drawRobot(vector2d loc, double theta, double conf, int robotI
         break;
     }
     }
-    //    drawQuad(-9.6,12.4,9.6,13.0,RobotZ+0.01);
-    //    drawQuad(-9.6,12.4,-9.0,16.6,RobotZ+0.01);
-    //    drawQuad(-9.6,16.0,9.6,16.6,RobotZ+0.01);
-    //    drawQuad(9.0,12.4,9.6,16.6,RobotZ+0.01);
+    //    glColor3d(1,0.5882,0.5882);
+    drawQuad(-9.6,12.4,9.6,13.0,RobotZ+0.01);
+    drawQuad(-9.6,12.4,-9.0,16.6,RobotZ+0.01);
+    drawQuad(-9.6,16.0,9.6,16.6,RobotZ+0.01);
+    drawQuad(9.0,12.4,9.6,16.6,RobotZ+0.01);
 
     glRotated(theta,0,0,1.0);
     drawRobot(team, hasAngle, true);
@@ -565,11 +578,12 @@ void GLSoccerView::drawFieldLines(FieldDimensions& dimensions)
 }
 
 void GLSoccerView::drawMap(InitMSG &map) {
+    if (map.map.col == -1 || map.map.row == -1) return;
     glColor4f(FIELD_LINES_COLOR);
     qDebug() << "MAP  " << map.map.col << map.map.row;
-    for (size_t i = 0; i <= map.map.col; ++i) {
-        FieldLine line(QString("col_%1").arg(i),i,  map.map.row,
-                       i, 0, 0.2);
+    for (int i = -map.map.col/2; i <= map.map.col/2 + 1; ++i) {
+        FieldLine line(QString("col_%1").arg(i),i,  map.map.row/2 + 1,
+                       i, -map.map.row/2, 0.2);
         const double half_thickness = line.thickness / 2;
         const vector2d p1(line.p1_x * 10, line.p1_y * 10);
         const vector2d p2(line.p2_x * 10, line.p2_y * 10);
@@ -579,9 +593,9 @@ void GLSoccerView::drawMap(InitMSG &map) {
         drawQuad(corner1, corner2, FieldZ);
     }
 
-    for(size_t i = 0; i <= map.map.row; i++) {
-        FieldLine line(QString("row_%1").arg(i), 0,  i,
-                       map.map.col, i, 0.2);
+    for(int i = -map.map.row/2; i <= map.map.row/2 + 1; i++) {
+        FieldLine line(QString("row_%1").arg(i), -map.map.col/2,  i,
+                       map.map.col/2 + 1, i, 0.2);
         const double half_thickness = line.thickness / 2;
         const vector2d p1(line.p1_x * 10, line.p1_y * 10);
         const vector2d p2(line.p2_x * 10, line.p2_y * 10);
@@ -592,26 +606,26 @@ void GLSoccerView::drawMap(InitMSG &map) {
     }
 
     for(int i = 0; i < map.map.row; i++) {
-        for (int j = 0; j < map.map.col - 2; j++) {
+        for (int j = 0; j < map.map.col; j++) {
             switch (map.map.cells[i][j].type) {
             case NONE:
-                glColor4d(0,0,0,0);
-                break;
+                continue;
             case WALL:
-                glColor4d(1.0,1.0,1.0,0.7);
+                glColor4d(1.0,1.0,1.0,0.5);
                 break;
             case RES1:
                 glColor4d(1.0,0,0,0.8);
                 break;
             case RES2:
-                glColor4d(0,0,1.0, 0.8);
+                glColor4d(0.0, 0.0, 1.0, 0.8);
                 break;
             case ZONE:
                 glColor4d(0,1.0,0.0,1.0);
                 break;
             }
-            FieldLine line(QString("cell_%1_%2").arg(i).arg(j), j + 1,  i + 1,
-                           j + 2, i, 20);
+            FieldLine line(QString("cell_%1_%2").arg(i).arg(j),
+                           -map.map.col/2 + j + .05,  -map.map.row/2 + i + 0.5,
+                           -map.map.col/2 + j + .95, -map.map.row/2 + i + 0.5, 9);
             const double half_thickness = line.thickness / 2;
             const vector2d p1(line.p1_x * 10, line.p1_y * 10);
             const vector2d p2(line.p2_x * 10, line.p2_y * 10);
@@ -621,6 +635,18 @@ void GLSoccerView::drawMap(InitMSG &map) {
             drawQuad(corner1, corner2, FieldZ);
         }
     }
+
+}
+
+void GLSoccerView::drawStatus() {
+
+    TextTest(vector2d(-500,400),0,20,QString("Team1_Score:%1").arg(status.score[0]).toStdString().c_str() ,GLText::LeftAligned,GLText::MedianAligned);
+    TextTest(vector2d(-500,300),0,20,QString("Team2_Score:%1").arg(status.score[1]).toStdString().c_str() ,GLText::LeftAligned,GLText::MedianAligned);
+    TextTest(vector2d(0,200),0,20,QString("TURN:%1").arg(status.turn).toStdString().c_str() ,GLText::LeftAligned,GLText::MedianAligned);
+
+}
+
+void GLSoccerView::drawPick() {
 
 }
 
@@ -642,9 +668,9 @@ void GLSoccerView::drawTriangle(vector2d loc1, vector2d loc2, vector2d loc3, dou
 }
 
 void GLSoccerView::drawRobots() {
-    for(int i=0; i<robots.size(); i++){
-        Robot r = robots[i];
-        drawRobot(r.loc,r.angle,r.conf,r.id,r.team,r.hasAngle);
+    for(int i=0; i<8; i++){
+        HeroPickMSG r = pick.heroes[i/4][i%4];
+        drawRobot(vector2d((r.row - 14.5) * 10, (r.col - 14.5) * 10),0,1,r.id,i/4,false);
     }
 }
 

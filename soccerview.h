@@ -118,9 +118,12 @@ private:
     FieldDimensions fieldDim;
     StatusMSG status;
     InitMSG stuff;
+    PickMSG pick;
 private:
     void drawFieldLines(FieldDimensions &dimensions);
     void drawMap(InitMSG &map);
+    void drawStatus();
+    void drawPick();
     void drawRobots();
 //    void drawHistory();
 //    void drawDebugs();
@@ -153,8 +156,9 @@ protected:
 public:
     GLSoccerView(QWidget *parent = 0);
     void updateMove(MoveMSG _msg);
-    void updateStatus(StatusMSG _status);
+    void updateStatus(const StatusMSG& _status);
     void initStuff(const InitMSG& _msg);
+    void initHero(const PickMSG& _msg);
 public slots:
     void resetView();
 private slots:
